@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package substreams.v1.program;
+
+message Data {
+    repeated MailSendEvent_Event mail_send_event_event_list = 1;
+    repeated MailV2SendEvent_Event mail_v2_send_event_event_list = 2;
+    repeated MailV2UpdateEvent_Event mail_v2_update_event_event_list = 3;
+    repeated MailV2ReadEvent_Event mail_v2_read_event_event_list = 4;
+    repeated MailV2UpdateLabelEvent_Event mail_v2_update_label_event_event_list = 5;
+    repeated MailAccountV2RegisterEvent_Event mail_account_v2_register_event_event_list = 6;
+    repeated MailAccountV2UpdateEvent_Event mail_account_v2_update_event_event_list = 7;
+    repeated Createmail_Instruction createmail_instruction_list = 8;
+    repeated Updatemail_Instruction updatemail_instruction_list = 9;
+    repeated Updatemailreadstatus_Instruction updatemailreadstatus_instruction_list = 10;
+    repeated Updatemaillabel_Instruction updatemaillabel_instruction_list = 11;
+    repeated RegisterV2_Instruction register_v2_instruction_list = 12;
+    repeated UpdateAccountV2_Instruction update_account_v2_instruction_list = 13;
+    repeated Sendmail_Instruction sendmail_instruction_list = 14;
+    repeated Register_Instruction register_instruction_list = 15;
+}
+message MailSendEvent_Event {
+  string trx_hash = 1;
+      string from = 2;
+      string to = 3;
+      string id = 4;
+}message MailV2SendEvent_Event {
+  string trx_hash = 1;
+      string from = 2;
+      string to = 3;
+      string id = 4;
+      string mailbox = 5;
+}message MailV2UpdateEvent_Event {
+  string trx_hash = 1;
+      string from = 2;
+      string to = 3;
+      string id = 4;
+      string mailbox = 5;
+      string parent_id = 6;
+      bool mark_as_read = 7;
+      uint32 created_at = 8;
+      string subject = 9;
+      string body = 10;
+      string authority = 11;
+      string iv = 12;
+      string salt = 13;
+      string version = 14;
+}message MailV2ReadEvent_Event {
+  string trx_hash = 1;
+      string id = 2;
+      string owner = 3;
+}message MailV2UpdateLabelEvent_Event {
+  string trx_hash = 1;
+      string id = 2;
+      string owner = 3;
+}message MailAccountV2RegisterEvent_Event {
+  string trx_hash = 1;
+      string owner = 2;
+      string account = 3;
+}message MailAccountV2UpdateEvent_Event {
+  string trx_hash = 1;
+      string owner = 2;
+      string account = 3;
+}
+
+message Createmail_Instruction {
+  string trx_hash = 1;
+    string subject = 2;
+    string from = 3;
+    string to = 4;
+    string salt = 5;
+    string iv = 6;
+    string version = 7;
+    string parent_id = 8;
+    string acct_mail = 9;
+    string acct_mail_account_v2 = 10;
+    string acct_authority = 11;
+    string acct_system_program = 12;
+}
+message Updatemail_Instruction {
+  string trx_hash = 1;
+    string body = 2;
+    string acct_mail = 3;
+    string acct_authority = 4;
+    string acct_system_program = 5;
+}
+message Updatemailreadstatus_Instruction {
+  string trx_hash = 1;
+    string acct_mail = 2;
+    string acct_authority = 3;
+    string acct_system_program = 4;
+}
+message Updatemaillabel_Instruction {
+  string trx_hash = 1;
+    uint64 label = 2;
+    string acct_mail = 3;
+    string acct_authority = 4;
+    string acct_system_program = 5;
+}
+message RegisterV2_Instruction {
+  string trx_hash = 1;
+    string nostr_key = 2;
+    string acct_mail_account_v2 = 3;
+    string acct_authority = 4;
+    string acct_system_program = 5;
+}
+message UpdateAccountV2_Instruction {
+  string trx_hash = 1;
+    string nostr_key = 2;
+    string mailbox = 3;
+    string acct_mail_account_v2 = 4;
+    string acct_authority = 5;
+}
+message Sendmail_Instruction {
+  string trx_hash = 1;
+    string subject = 2;
+    string body = 3;
+    string from = 4;
+    string to = 5;
+    string salt = 6;
+    string iv = 7;
+    string version = 8;
+    string acct_mail = 9;
+    string acct_authority = 10;
+    string acct_system_program = 11;
+}
+message Register_Instruction {
+  string trx_hash = 1;
+    string nostr_key = 2;
+    string acct_mail_account = 3;
+    string acct_authority = 4;
+    string acct_system_program = 5;
+}
+
