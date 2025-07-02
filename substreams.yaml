@@ -31,7 +31,7 @@ binaries:
 modules:
   - name: map_program_data
     kind: map
-    initialBlock: 386860734
+    initialBlock: 256739663
     inputs:
       - map: solana:blocks_without_votes
     output:
@@ -39,11 +39,11 @@ modules:
     blockFilter:
       module: solana:program_ids_without_votes
       query:
-        string: program:AWzFXDVYFkiFH5SqmHQ7BBYn4L94CxZwni68vsPmXcVe
+        string: program:Mai1UbiFBUvDnE2DDRxp765sRtX792zw24cgSpcgrz1
 
   - name: db_out
     kind: map
-    initialBlock: 386860734
+    initialBlock: 256739663
     inputs:
       - map: map_program_data
     output:
@@ -56,4 +56,4 @@ sink:
     engine: postgres
     schema: "schema.sql"
 
-network: solana-devnet
+network: solana-mainnet
