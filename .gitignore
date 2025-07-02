@@ -3,6 +3,7 @@
 
 # Compiled source files
 target/
+node_modules/
 
 # Sink data when running any sinker
 sink-data/
