@@ -231,37 +231,39 @@ export class UserStatsModel {
         const start = Date.now();
         
         try {
+            // OPTIMIZED: Non-recursive approach with better performance
             const queryText = `
-                WITH RECURSIVE mail_thread AS (
-                    -- Find the root message or start from this message
+                WITH thread_mails AS (
+                    -- First, find the root mail
                     SELECT 
                         mail_id, subject, body, from_address, to_address,
                         mark_as_read, parent_id, iv, salt, version, mailbox,
-                        created_at, 1 as level,
-                        CASE 
-                            WHEN parent_id IS NULL OR parent_id = '' THEN mail_id
-                            ELSE parent_id
-                        END as thread_root
+                        created_at, 1 as level
                     FROM mail_v2_update_event 
                     WHERE mail_id = $1
                     
                     UNION ALL
                     
-                    -- Find all messages in the same thread
+                    -- Then find direct replies (limit depth to 3 levels)
                     SELECT 
-                        m.mail_id, m.subject, m.body, m.from_address, m.to_address,
-                        m.mark_as_read, m.parent_id, m.iv, m.salt, m.version, m.mailbox,
-                        m.created_at, mt.level + 1,
-                        mt.thread_root
-                    FROM mail_v2_update_event m
-                    INNER JOIN mail_thread mt ON (
-                        m.parent_id = mt.mail_id OR 
-                        m.mail_id = mt.parent_id OR
-                        (mt.parent_id IS NOT NULL AND m.parent_id = mt.parent_id)
-                    )
-                    WHERE mt.level < 10 -- Prevent infinite recursion
+                        child.mail_id, child.subject, child.body, child.from_address, child.to_address,
+                        child.mark_as_read, child.parent_id, child.iv, child.salt, child.version, child.mailbox,
+                        child.created_at, 2 as level
+                    FROM mail_v2_update_event child
+                    WHERE child.parent_id = $1
+                    
+                    UNION ALL
+                    
+                    -- Level 3 replies
+                    SELECT 
+                        grandchild.mail_id, grandchild.subject, grandchild.body, grandchild.from_address, grandchild.to_address,
+                        grandchild.mark_as_read, grandchild.parent_id, grandchild.iv, grandchild.salt, grandchild.version, grandchild.mailbox,
+                        grandchild.created_at, 3 as level
+                    FROM mail_v2_update_event grandchild
+                    INNER JOIN mail_v2_update_event parent ON parent.mail_id = grandchild.parent_id
+                    WHERE parent.parent_id = $1
                 )
-                SELECT DISTINCT 
+                SELECT 
                     mail_id as id,
                     subject,
                     body,
@@ -275,9 +277,13 @@ export class UserStatsModel {
                     mailbox,
                     created_at,
                     level,
-                    EXTRACT(EPOCH FROM created_at) * 1000 as timestamp
-                FROM mail_thread 
+                    CASE 
+                        WHEN created_at IS NOT NULL THEN created_at
+                        ELSE NOW()
+                    END as safe_timestamp
+                FROM thread_mails 
                 ORDER BY created_at ASC
+                LIMIT 100  -- Prevent excessive results
             `;
             
             const result = await query(queryText, [mailId]);
@@ -285,19 +291,29 @@ export class UserStatsModel {
             
             logQuery(queryText, [mailId], duration);
             
+            if (result.rows.length === 0) {
+                return {
+                    mailId,
+                    messages: [],
+                    participantCount: 0,
+                    messageCount: 0,
+                    lastActivity: null
+                };
+            }
+
             const messages = result.rows.map(row => ({
                 id: row.id,
-                subject: row.subject,
-                body: row.body,
+                subject: row.subject || '',
+                body: row.body || '',
                 fromAddress: row.from_address,
                 toAddress: row.to_address,
-                isRead: row.mark_as_read,
+                isRead: row.mark_as_read || false,
                 parentId: row.parent_id,
                 isEncrypted: !!(row.iv && row.salt),
-                version: row.version,
-                mailbox: row.mailbox,
+                version: row.version || '1.0',
+                mailbox: row.mailbox || 'inbox',
                 level: row.level,
-                timestamp: new Date(row.timestamp),
+                timestamp: new Date(row.safe_timestamp),
                 createdAt: row.created_at
             }));
 

@@ -53,11 +53,12 @@ const requiredEnvVars = {
         default: 'http://localhost:3000',
         description: 'Comma-separated list of allowed CORS origins'
     },
-    JWT_SECRET: {
-        required: false,
+    JWT_SECRET_KEY: {
+        required: true,
         type: 'string',
         sensitive: true,
-        description: 'JWT secret for authentication'
+        minLength: 32,
+        description: 'JWT secret key for token verification (minimum 32 characters)'
     },
     
     // Cache configuration
@@ -168,7 +169,7 @@ class EnvValidator {
 
     validateEnvVar(key, schema) {
         const value = process.env[key];
-        const { required, type, default: defaultValue, enum: enumValues, sensitive } = schema;
+        const { required, type, default: defaultValue, enum: enumValues, sensitive, minLength } = schema;
 
         // Check if required variable is missing
         if (required && (value === undefined || value === '')) {
@@ -191,6 +192,12 @@ class EnvValidator {
             // Enum validation
             if (enumValues && !enumValues.includes(finalValue)) {
                 this.errors.push(`Invalid value for ${key}. Must be one of: ${enumValues.join(', ')}`);
+                return;
+            }
+
+            // String length validation
+            if (minLength && type === 'string' && finalValue.length < minLength) {
+                this.errors.push(`${key} must be at least ${minLength} characters long`);
                 return;
             }
 
@@ -250,6 +257,7 @@ class EnvValidator {
             key.startsWith('REDIS_') || 
             key.startsWith('LOG_') ||
             key.startsWith('CACHE_') ||
+            key.startsWith('JWT_') ||
             key === 'PORT' ||
             key === 'NODE_ENV'
         ).filter(key => !knownVars.has(key));
@@ -280,6 +288,7 @@ class EnvValidator {
         logger.info(`  - Redis enabled: ${this.config.REDIS_ENABLED}`);
         logger.info(`  - Log level: ${this.config.LOG_LEVEL}`);
         logger.info(`  - Max DB connections: ${this.config.DB_MAX_CONNECTIONS}`);
+        logger.info(`  - JWT authentication: enabled`);
     }
 
     // Generate environment file template
@@ -290,11 +299,14 @@ class EnvValidator {
         template += '# Copy this file to .env and fill in the values\n\n';
 
         for (const [key, schema] of Object.entries(requiredEnvVars)) {
-            const { required, description, default: defaultValue, type, enum: enumValues } = schema;
+            const { required, description, default: defaultValue, type, enum: enumValues, minLength } = schema;
             
             template += `# ${description}\n`;
             if (enumValues) {
                 template += `# Options: ${enumValues.join(', ')}\n`;
+            }
+            if (minLength) {
+                template += `# Minimum length: ${minLength} characters\n`;
             }
             template += `# Type: ${type}${required ? ' (required)' : ' (optional)'}\n`;
             
@@ -318,8 +330,8 @@ class EnvValidator {
                 severity: 'error'
             },
             {
-                name: 'JWT_SECRET is set',
-                check: () => process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32,
+                name: 'JWT_SECRET_KEY is set and strong',
+                check: () => process.env.JWT_SECRET_KEY && process.env.JWT_SECRET_KEY.length >= 32,
                 severity: 'error'
             },
             {
@@ -335,6 +347,11 @@ class EnvValidator {
             {
                 name: 'Redis is enabled for production',
                 check: () => process.env.REDIS_ENABLED === 'true',
+                severity: 'warning'
+            },
+            {
+                name: 'JWT secret is production-grade',
+                check: () => process.env.JWT_SECRET_KEY && process.env.JWT_SECRET_KEY.length >= 64,
                 severity: 'warning'
             }
         ];

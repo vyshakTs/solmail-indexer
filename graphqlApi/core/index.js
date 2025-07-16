@@ -6,6 +6,7 @@ export {
     ValidationError,
     NotFoundError,
     AuthenticationError,
+    AuthorizationError,
     RateLimitError,
     DatabaseError,
     errorHandler,
@@ -15,3 +16,10 @@ export {
  } from './errorHandler.js';
 export { logger, logRequest, logPerformance, logQuery, logGraphQLOperation } from './logger.js';
 export { rateLimiter, graphqlRateLimiter, authRateLimiter, healthCheckRateLimiter, complexityRateLimiter, SlidingWindowRateLimiter, globalRateLimiter } from './rateLimiter.js';
+export { 
+    jwtAuthenticator, 
+    JWTAuthenticator, 
+    requireAuth, 
+    requireAdmin, 
+    requireOwnership 
+} from './auth.js';
