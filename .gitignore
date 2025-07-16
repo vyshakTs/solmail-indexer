@@ -12,3 +12,4 @@ sink-data/
 *.spkg
 
 replay.log
+.env
